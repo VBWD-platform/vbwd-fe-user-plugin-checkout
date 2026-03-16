@@ -1,0 +1,20 @@
+{
+  "tabs": [
+    {
+      "id": "general",
+      "label": "General",
+      "fields": [
+        {
+          "key": "requireTerms",
+          "label": "Require Terms Acceptance",
+          "component": "checkbox"
+        },
+        {
+          "key": "allowGuestCheckout",
+          "label": "Allow Guest Checkout",
+          "component": "checkbox"
+        }
+      ]
+    }
+  ]
+}
