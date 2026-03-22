@@ -21,6 +21,12 @@ export const checkoutPlugin: IPlugin = {
       component: () => import('./PublicCheckoutView.vue') as Promise<{ default: unknown }>,
       meta: { requiresAuth: false, noLayout: true }
     });
+    sdk.addRoute({
+      path: '/checkout/confirmation',
+      name: 'checkout-confirmation',
+      component: () => import('./CheckoutConfirmationView.vue') as Promise<{ default: unknown }>,
+      meta: { requiresAuth: false, noLayout: true }
+    });
 
     sdk.addTranslations('en', en);
     sdk.addTranslations('de', de);
