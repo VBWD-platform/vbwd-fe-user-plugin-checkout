@@ -1,14 +1,20 @@
 <template>
   <div class="public-checkout">
     <!-- Loading -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <div class="spinner" />
       <p>{{ $t('checkout.confirmation.verifying') }}</p>
     </div>
 
     <template v-else>
       <!-- Status Banner -->
-      <div class="confirmation-banner" :class="`confirmation-banner--${paymentStatus}`">
+      <div
+        class="confirmation-banner"
+        :class="`confirmation-banner--${paymentStatus}`"
+      >
         <h1>{{ statusTitle }}</h1>
         <p>{{ statusMessage }}</p>
       </div>
@@ -18,25 +24,40 @@
         <div class="card">
           <h2>{{ $t('checkout.confirmation.paymentDetails') }}</h2>
           <div class="confirmation-grid">
-            <div v-if="invoiceNumber" class="confirmation-row">
+            <div
+              v-if="invoiceNumber"
+              class="confirmation-row"
+            >
               <span class="confirmation-label">{{ $t('checkout.confirmation.invoiceNumber') }}</span>
               <span class="confirmation-value confirmation-mono">{{ invoiceNumber }}</span>
             </div>
-            <div v-if="invoiceId" class="confirmation-row">
+            <div
+              v-if="invoiceId"
+              class="confirmation-row"
+            >
               <span class="confirmation-label">{{ $t('checkout.confirmation.invoiceId') }}</span>
               <span class="confirmation-value confirmation-mono">{{ invoiceId }}</span>
             </div>
             <div class="confirmation-row">
               <span class="confirmation-label">{{ $t('checkout.confirmation.status') }}</span>
               <span class="confirmation-value">
-                <span class="status-badge" :class="paymentStatus">{{ paymentStatus }}</span>
+                <span
+                  class="status-badge"
+                  :class="paymentStatus"
+                >{{ paymentStatus }}</span>
               </span>
             </div>
-            <div v-if="totalAmount" class="confirmation-row">
+            <div
+              v-if="totalAmount"
+              class="confirmation-row"
+            >
               <span class="confirmation-label">{{ $t('checkout.confirmation.amount') }}</span>
               <span class="confirmation-value"><strong>{{ totalAmount }} {{ currency }}</strong></span>
             </div>
-            <div v-if="paymentDate" class="confirmation-row">
+            <div
+              v-if="paymentDate"
+              class="confirmation-row"
+            >
               <span class="confirmation-label">{{ $t('checkout.confirmation.date') }}</span>
               <span class="confirmation-value">{{ paymentDate }}</span>
             </div>
@@ -45,9 +66,9 @@
 
         <!-- Plugin-injected confirmation details (e.g., booking resource info) -->
         <component
+          :is="plugin.component"
           v-for="plugin in confirmationPlugins"
           :key="plugin.name"
-          :is="plugin.component"
           :invoice-id="invoiceId"
           :invoice-data="invoiceData"
           class="card"
@@ -55,10 +76,16 @@
 
         <!-- Actions -->
         <div class="checkout-actions">
-          <router-link to="/" class="btn secondary">
+          <router-link
+            to="/"
+            class="btn secondary"
+          >
             {{ $t('checkout.confirmation.backToHome') }}
           </router-link>
-          <router-link to="/dashboard/invoices" class="btn primary">
+          <router-link
+            to="/dashboard/invoices"
+            class="btn primary"
+          >
             {{ $t('checkout.confirmation.viewInvoices') }}
           </router-link>
         </div>
