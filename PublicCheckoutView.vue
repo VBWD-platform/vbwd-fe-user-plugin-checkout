@@ -29,9 +29,9 @@
       </router-link>
     </div>
 
-    <!-- No Plan Selected -->
+    <!-- No Plan Selected (only for plan checkout, not shop checkout) -->
     <div
-      v-else-if="!planSlug"
+      v-else-if="!planSlug && !checkoutStore.isCartCheckout"
       class="no-plan"
       data-testid="checkout-no-plan"
     >
@@ -78,7 +78,7 @@
 
     <!-- Checkout Form -->
     <div
-      v-else-if="checkoutStore.plan"
+      v-else-if="checkoutStore.plan || checkoutStore.isCartCheckout"
       class="checkout-content"
     >
       <!-- Step 1: Email Block (login/register or logged-in display) -->
@@ -103,7 +103,9 @@
         data-testid="order-summary"
       >
         <h2>{{ $t('checkout.orderSummary.title') }}</h2>
-        <div class="plan-details">
+
+        <!-- Plan checkout summary -->
+        <div v-if="checkoutStore.plan" class="plan-details">
           <div class="plan-row">
             <span data-testid="plan-name">{{ checkoutStore.plan.name }}</span>
             <span data-testid="plan-price">${{ getPlanPrice() }}/{{ formatBillingPeriod(checkoutStore.plan.billing_period) }}</span>
@@ -115,8 +117,22 @@
             {{ checkoutStore.plan.description }}
           </p>
         </div>
+
+        <!-- Shop cart summary -->
+        <div v-if="checkoutStore.isCartCheckout" class="cart-items-summary">
+          <div
+            v-for="item in checkoutStore.lineItems"
+            :key="item.id"
+            class="plan-row"
+            :data-testid="`cart-line-item-${item.id}`"
+          >
+            <span>{{ item.name }} <span v-if="(item as any).quantity > 1" class="plan-description">x{{ (item as any).quantity }}</span></span>
+            <span>{{ formatShopPrice((item as any).total_price || item.price, (item as any).currency || 'EUR') }}</span>
+          </div>
+        </div>
+
         <div class="total">
-          <strong>{{ $t('checkout.success.totalLabel') }} ${{ checkoutStore.orderTotal }}</strong>
+          <strong>{{ $t('checkout.success.totalLabel') }} {{ checkoutStore.isCartCheckout ? formatShopPrice(checkoutStore.orderTotal, 'EUR') : `$${checkoutStore.orderTotal}` }}</strong>
         </div>
       </div>
 
@@ -259,6 +275,11 @@ function getPlanPrice(): number {
   return checkoutStore.plan?.price || checkoutStore.plan?.display_price || 0;
 }
 
+function formatShopPrice(price: number | string, currency: string): string {
+  const num = typeof price === 'string' ? parseFloat(price) : price;
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'EUR' }).format(num);
+}
+
 function formatBillingPeriod(period?: string): string {
   if (!period) return t('common.billingPeriods.month');
   const periodMap: Record<string, string> = {
@@ -288,7 +309,18 @@ watch(() => checkoutStore.checkoutResult, (result) => {
 });
 
 onMounted(async () => {
-  if (planSlug.value) {
+  const source = route.query.source as string;
+  if (source === 'shop') {
+    loading.value = true;
+    try {
+      await checkoutStore.loadFromShopCart();
+      error.value = checkoutStore.error;
+    } catch (e) {
+      error.value = (e as Error).message;
+    } finally {
+      loading.value = false;
+    }
+  } else if (planSlug.value) {
     loading.value = true;
     try {
       await checkoutStore.loadPlan(planSlug.value);
