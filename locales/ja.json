@@ -35,6 +35,23 @@
     "noPlanSelected": "プランが選択されていません。まずプランを選択してください。",
     "errors": {
       "failedToLoad": "プラン詳細の読み込みに失敗しました"
+    },
+    "confirmation": {
+      "verifying": "Verifying your payment...",
+      "paymentDetails": "Payment Details",
+      "invoiceNumber": "Invoice Number",
+      "invoiceId": "Invoice ID",
+      "status": "Status",
+      "amount": "Amount",
+      "date": "Date",
+      "backToHome": "Back to Home",
+      "viewInvoices": "View Invoices",
+      "paymentMethod": "Payment Method",
+      "items": "Items",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total"
     }
   }
 }

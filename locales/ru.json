@@ -35,6 +35,23 @@
     "noPlanSelected": "Тариф не выбран. Пожалуйста, сначала выберите тариф.",
     "errors": {
       "failedToLoad": "Ошибка загрузки деталей тарифа"
+    },
+    "confirmation": {
+      "verifying": "Verifying your payment...",
+      "paymentDetails": "Payment Details",
+      "invoiceNumber": "Invoice Number",
+      "invoiceId": "Invoice ID",
+      "status": "Status",
+      "amount": "Amount",
+      "date": "Date",
+      "backToHome": "Back to Home",
+      "viewInvoices": "View Invoices",
+      "paymentMethod": "Payment Method",
+      "items": "Items",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total"
     }
   }
 }

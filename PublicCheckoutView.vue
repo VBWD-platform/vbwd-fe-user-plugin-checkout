@@ -44,38 +44,6 @@
       </router-link>
     </div>
 
-    <!-- Checkout Success -->
-    <div
-      v-else-if="checkoutStore.checkoutResult"
-      class="checkout-success"
-      data-testid="checkout-success"
-    >
-      <h2>{{ $t('checkout.success.title') }}</h2>
-
-      <div class="status-info">
-        <p
-          v-if="checkoutStore.checkoutResult.subscription"
-        >
-          {{ $t('checkout.success.subscriptionStatus') }}
-          <span data-testid="subscription-status">
-            {{ checkoutStore.checkoutResult.subscription.status === 'PENDING' ? $t('checkout.success.statusPending') : $t('checkout.success.statusActive') }}
-          </span>
-        </p>
-        <p data-testid="invoice-number">
-          {{ $t('checkout.success.invoiceLabel') }} {{ checkoutStore.checkoutResult.invoice.invoice_number }}
-        </p>
-      </div>
-
-      <div class="checkout-actions">
-        <router-link
-          to="/landing1"
-          class="btn secondary"
-        >
-          {{ $t('common.backToPlans') }}
-        </router-link>
-      </div>
-    </div>
-
     <!-- Checkout Form -->
     <div
       v-else-if="checkoutStore.plan || checkoutStore.isCartCheckout"
@@ -105,7 +73,10 @@
         <h2>{{ $t('checkout.orderSummary.title') }}</h2>
 
         <!-- Plan checkout summary -->
-        <div v-if="checkoutStore.plan" class="plan-details">
+        <div
+          v-if="checkoutStore.plan"
+          class="plan-details"
+        >
           <div class="plan-row">
             <span data-testid="plan-name">{{ checkoutStore.plan.name }}</span>
             <span data-testid="plan-price">${{ getPlanPrice() }}/{{ formatBillingPeriod(checkoutStore.plan.billing_period) }}</span>
@@ -119,14 +90,20 @@
         </div>
 
         <!-- Shop cart summary -->
-        <div v-if="checkoutStore.isCartCheckout" class="cart-items-summary">
+        <div
+          v-if="checkoutStore.isCartCheckout"
+          class="cart-items-summary"
+        >
           <div
             v-for="item in checkoutStore.lineItems"
             :key="item.id"
             class="plan-row"
             :data-testid="`cart-line-item-${item.id}`"
           >
-            <span>{{ item.name }} <span v-if="(item as any).quantity > 1" class="plan-description">x{{ (item as any).quantity }}</span></span>
+            <span>{{ item.name }} <span
+              v-if="(item as any).quantity > 1"
+              class="plan-description"
+            >x{{ (item as any).quantity }}</span></span>
             <span>{{ formatShopPrice((item as any).total_price || item.price, (item as any).currency || 'EUR') }}</span>
           </div>
         </div>
@@ -209,7 +186,7 @@ import EmailBlock from '@/components/checkout/EmailBlock.vue';
 import PaymentMethodsBlock from '@/components/checkout/PaymentMethodsBlock.vue';
 import TermsCheckbox from '@/components/checkout/TermsCheckbox.vue';
 import BillingAddressBlock from '@/components/checkout/BillingAddressBlock.vue';
-import { checkoutContextRegistry } from './checkoutContextRegistry';
+import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
 
 const route = useRoute();
 const router = useRouter();
@@ -293,18 +270,23 @@ function formatBillingPeriod(period?: string): string {
   return periodMap[period] || period.toLowerCase();
 }
 
-// Redirect to payment provider when checkout succeeds
+// After checkout succeeds: redirect to payment provider or directly to confirmation
 watch(() => checkoutStore.checkoutResult, (result) => {
-  if (result && checkoutStore.paymentMethodCode === 'stripe') {
-    const invoiceId = result.invoice?.id;
-    if (invoiceId) {
-      router.push({ path: '/pay/stripe', query: { invoice: invoiceId } });
-    }
-  } else if (result && checkoutStore.paymentMethodCode === 'paypal') {
-    const invoiceId = result.invoice?.id;
-    if (invoiceId) {
-      router.push({ path: '/pay/paypal', query: { invoice: invoiceId } });
-    }
+  if (!result) return;
+  const invoiceId = result.invoice?.id;
+  if (!invoiceId) return;
+
+  const method = checkoutStore.paymentMethodCode;
+
+  if (method === 'stripe') {
+    router.push({ path: '/pay/stripe', query: { invoice: invoiceId } });
+  } else if (method === 'paypal') {
+    router.push({ path: '/pay/paypal', query: { invoice: invoiceId } });
+  } else if (method === 'yookassa') {
+    router.push({ path: '/pay/yookassa', query: { invoice: invoiceId } });
+  } else {
+    // Basic / invoice / any other method → go straight to confirmation
+    router.push({ path: '/checkout/confirmation', query: { invoice_id: invoiceId } });
   }
 });
 

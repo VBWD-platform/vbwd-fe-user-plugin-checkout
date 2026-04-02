@@ -1,0 +1,1 @@
+{"id": "chkw0002-2222-4aaa-bbbb-222222222222", "slug": "checkout-confirmation", "name": "Checkout Confirmation", "widget_type": "vue-component", "content_json": {"component": "CheckoutConfirmation"}, "content_html": null, "source_css": null, "is_active": true, "created_at": "2026-03-30T10:00:00.000000", "updated_at": "2026-03-30T10:00:00.000000"}

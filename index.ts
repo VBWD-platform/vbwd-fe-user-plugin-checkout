@@ -15,6 +15,7 @@ export const checkoutPlugin: IPlugin = {
   _active: false,
 
   install(sdk: IPlatformSDK) {
+    // Routes — keep noLayout for now, will migrate to CMS pages later
     sdk.addRoute({
       path: '/checkout',
       name: 'checkout-public',
@@ -24,10 +25,12 @@ export const checkoutPlugin: IPlugin = {
     sdk.addRoute({
       path: '/checkout/confirmation',
       name: 'checkout-confirmation',
-      component: () => import('./CheckoutConfirmationView.vue') as Promise<{ default: unknown }>,
-      meta: { requiresAuth: false, noLayout: true }
+      component: () => import('../cms/src/views/CmsPage.vue'),
+      props: { slug: 'checkout-confirmation' },
+      meta: { requiresAuth: false, cmsLayout: true }
     });
 
+    // Translations
     sdk.addTranslations('en', en);
     sdk.addTranslations('de', de);
     sdk.addTranslations('es', es);
@@ -36,6 +39,21 @@ export const checkoutPlugin: IPlugin = {
     sdk.addTranslations('ru', ru);
     sdk.addTranslations('th', th);
     sdk.addTranslations('zh', zh);
+
+    // Register CMS vue-component widgets
+    import('../cms/src/registry/vueComponentRegistry')
+      .then(({ registerCmsVueComponent }) => {
+        Promise.all([
+          import('./PublicCheckoutView.vue'),
+          import('./CheckoutConfirmationView.vue'),
+        ]).then(([checkoutForm, checkoutConfirmation]) => {
+          registerCmsVueComponent('CheckoutForm', checkoutForm.default);
+          registerCmsVueComponent('CheckoutConfirmation', checkoutConfirmation.default);
+        });
+      })
+      .catch(() => {
+        // CMS plugin not installed — skip widget registration
+      });
   },
 
   activate(): void {

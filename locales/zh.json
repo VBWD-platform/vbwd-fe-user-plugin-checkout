@@ -35,6 +35,23 @@
     "noPlanSelected": "未选择计划。请先选择计划。",
     "errors": {
       "failedToLoad": "加载计划详情失败"
+    },
+    "confirmation": {
+      "verifying": "Verifying your payment...",
+      "paymentDetails": "Payment Details",
+      "invoiceNumber": "Invoice Number",
+      "invoiceId": "Invoice ID",
+      "status": "Status",
+      "amount": "Amount",
+      "date": "Date",
+      "backToHome": "Back to Home",
+      "viewInvoices": "View Invoices",
+      "paymentMethod": "Payment Method",
+      "items": "Items",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total"
     }
   }
 }

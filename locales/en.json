@@ -35,6 +35,23 @@
     "noPlanSelected": "No plan selected. Please choose a plan first.",
     "errors": {
       "failedToLoad": "Failed to load plan details"
+    },
+    "confirmation": {
+      "verifying": "Verifying your payment...",
+      "paymentDetails": "Payment Details",
+      "invoiceNumber": "Invoice Number",
+      "invoiceId": "Invoice ID",
+      "status": "Status",
+      "amount": "Amount",
+      "date": "Date",
+      "paymentMethod": "Payment Method",
+      "items": "Items",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "backToHome": "Back to Home",
+      "viewInvoices": "View Invoices"
     }
   }
 }

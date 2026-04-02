@@ -35,6 +35,23 @@
     "noPlanSelected": "Kein Tarif ausgewählt. Bitte wählen Sie zuerst einen Tarif.",
     "errors": {
       "failedToLoad": "Tarifdetails konnten nicht geladen werden"
+    },
+    "confirmation": {
+      "verifying": "Verifying your payment...",
+      "paymentDetails": "Payment Details",
+      "invoiceNumber": "Invoice Number",
+      "invoiceId": "Invoice ID",
+      "status": "Status",
+      "amount": "Amount",
+      "date": "Date",
+      "backToHome": "Back to Home",
+      "viewInvoices": "View Invoices",
+      "paymentMethod": "Payment Method",
+      "items": "Items",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total"
     }
   }
 }
