@@ -216,38 +216,41 @@ const missingRequirements = computed(() => {
   return missing;
 });
 
-// After checkout succeeds: redirect to payment provider or directly to confirmation.
-// If a plugin registered an `instantPay` for the method, call it now and then
-// route straight to confirmation (no gateway redirect, no PENDING wait — s12).
+// Agnostic post-checkout dispatch: the registered entry for the selected
+// method tells us what to do. Core knows no method codes.
+//
+//   instantPay  → finish in-band, then /checkout/confirmation
+//   redirectPath → hop to the plugin's /pay/<name> page
+//   nothing      → straight to /checkout/confirmation
+//
+// Gateway plugins (stripe / paypal / yookassa / …) register redirectPath;
+// in-band plugins (token-payment) register instantPay.
 watch(() => checkoutStore.checkoutResult, async (result) => {
   if (!result) return;
   const invoiceId = result.invoice?.id;
   if (!invoiceId) return;
 
   const method = checkoutStore.paymentMethodCode;
-  const registered = method ? getCheckoutPaymentMethod(method) : undefined;
-  if (registered?.instantPay) {
+  const entry = method ? getCheckoutPaymentMethod(method) : undefined;
+
+  if (entry?.instantPay) {
     try {
-      await registered.instantPay(invoiceId);
+      await entry.instantPay(invoiceId);
     } catch (err) {
-      // Failure is shown by the detail component / surfaced by the API call;
-      // we still route to confirmation so the user can see the invoice state.
+      // The detail component / API surfaces the failure; we still land on
+      // confirmation so the user can see the invoice state.
       console.warn('[checkout] instantPay failed for', method, err);
     }
     router.push({ path: '/checkout/confirmation', query: { invoice_id: invoiceId } });
     return;
   }
 
-  if (method === 'stripe') {
-    router.push({ path: '/pay/stripe', query: { invoice: invoiceId } });
-  } else if (method === 'paypal') {
-    router.push({ path: '/pay/paypal', query: { invoice: invoiceId } });
-  } else if (method === 'yookassa') {
-    router.push({ path: '/pay/yookassa', query: { invoice: invoiceId } });
-  } else {
-    // Basic / invoice / any other method → go straight to confirmation
-    router.push({ path: '/checkout/confirmation', query: { invoice_id: invoiceId } });
+  if (entry?.redirectPath) {
+    router.push(entry.redirectPath(invoiceId));
+    return;
   }
+
+  router.push({ path: '/checkout/confirmation', query: { invoice_id: invoiceId } });
 });
 
 onMounted(async () => {
