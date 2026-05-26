@@ -127,7 +127,7 @@
           :disabled="!canCheckout"
           @click="checkoutStore.submitCheckout"
         >
-          {{ checkoutStore.submitting ? $t('checkout.submitting') : $t('checkout.payButton', { amount: checkoutStore.orderTotal }) }}
+          {{ checkoutStore.submitting ? $t('checkout.submitting') : (payButtonLabelOverride || $t('checkout.payButton', { amount: formattedTotalForButton })) }}
         </button>
       </div>
 
@@ -147,6 +147,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { formatMoney, payButtonLabelOverride } from 'vbwd-view-component';
 import { useCheckoutStore } from '@/stores/checkout';
 import { isAuthenticated as checkAuth } from '@/api';
 import EmailBlock from '@/components/checkout/EmailBlock.vue';
@@ -163,6 +164,12 @@ const checkoutStore = useCheckoutStore();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
+
+// Pre-format the order total so the Pay button never leaks IEEE-754 noise
+// (e.g. ``Pay $39.989999999999995``). Rounded half-up at the 3rd decimal.
+const formattedTotalForButton = computed(() =>
+  formatMoney(Number(checkoutStore.orderTotal), { currency: checkoutStore.currency || 'USD' }),
+);
 
 // Auth state
 const isAuthenticated = ref(checkAuth());
