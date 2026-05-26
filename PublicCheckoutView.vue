@@ -88,6 +88,8 @@
       <!-- Step 3: Payment Methods -->
       <PaymentMethodsBlock
         class="card"
+        :amount="checkoutStore.orderTotal"
+        :currency="checkoutStore.currency"
         @selected="handlePaymentMethodSelected"
       />
 
@@ -149,6 +151,7 @@ import { useCheckoutStore } from '@/stores/checkout';
 import { isAuthenticated as checkAuth } from '@/api';
 import EmailBlock from '@/components/checkout/EmailBlock.vue';
 import PaymentMethodsBlock from '@/components/checkout/PaymentMethodsBlock.vue';
+import { getCheckoutPaymentMethod } from '@/registries/checkoutPaymentMethods';
 import TermsCheckbox from '@/components/checkout/TermsCheckbox.vue';
 import BillingAddressBlock from '@/components/checkout/BillingAddressBlock.vue';
 import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
@@ -213,13 +216,27 @@ const missingRequirements = computed(() => {
   return missing;
 });
 
-// After checkout succeeds: redirect to payment provider or directly to confirmation
-watch(() => checkoutStore.checkoutResult, (result) => {
+// After checkout succeeds: redirect to payment provider or directly to confirmation.
+// If a plugin registered an `instantPay` for the method, call it now and then
+// route straight to confirmation (no gateway redirect, no PENDING wait — s12).
+watch(() => checkoutStore.checkoutResult, async (result) => {
   if (!result) return;
   const invoiceId = result.invoice?.id;
   if (!invoiceId) return;
 
   const method = checkoutStore.paymentMethodCode;
+  const registered = method ? getCheckoutPaymentMethod(method) : undefined;
+  if (registered?.instantPay) {
+    try {
+      await registered.instantPay(invoiceId);
+    } catch (err) {
+      // Failure is shown by the detail component / surfaced by the API call;
+      // we still route to confirmation so the user can see the invoice state.
+      console.warn('[checkout] instantPay failed for', method, err);
+    }
+    router.push({ path: '/checkout/confirmation', query: { invoice_id: invoiceId } });
+    return;
+  }
 
   if (method === 'stripe') {
     router.push({ path: '/pay/stripe', query: { invoice: invoiceId } });
