@@ -9,13 +9,18 @@
       "statusActive": "Active",
       "invoiceLabel": "Invoice:",
       "paymentRequired": "Complete payment to activate your subscription.",
+      "paymentComplete": "Payment complete — your subscription is active.",
       "invoiceItems": "Invoice Items",
       "totalLabel": "Total:",
       "viewSubscription": "View Subscription",
       "viewInvoice": "View Invoice"
     },
     "orderSummary": {
-      "title": "Order Summary"
+      "title": "Order Summary",
+      "discount": "Discount",
+      "total": "Total:",
+      "finalPrice": "Final price with coupon:",
+      "youSaved": "You have saved:"
     },
     "tokenBundles": {
       "title": "Add Token Bundles"
@@ -30,7 +35,8 @@
       "paymentMethod": "Select payment method",
       "acceptTerms": "Accept terms and conditions"
     },
-    "payButton": "Pay ${amount}",
+    "payButton": "Pay {amount}",
+    "activateFree": "Activate for Free",
     "submitting": "Processing...",
     "noPlanSelected": "No plan selected. Please choose a plan first.",
     "errors": {

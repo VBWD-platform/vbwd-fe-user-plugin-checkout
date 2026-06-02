@@ -76,17 +76,49 @@
           v-if="checkoutStore.summaryComponent"
           data-testid="checkout-order-summary"
         />
+
+        <!-- A coupon only makes sense when there is something to pay. -->
+        <CouponInput
+          v-if="hasPayableTotal"
+          class="checkout-coupon"
+          :applied-code="checkoutStore.couponCode"
+          :error="checkoutStore.couponError"
+          :loading="checkoutStore.applyingCoupon"
+          @apply="onApplyCoupon"
+          @clear="checkoutStore.clearCoupon"
+        />
+
+        <div
+          class="order-total"
+          data-testid="order-total"
+        >
+          <strong data-testid="order-total-amount">
+            {{ checkoutStore.discountAmount > 0
+              ? $t('checkout.orderSummary.finalPrice')
+              : $t('checkout.orderSummary.total') }}
+            {{ formattedTotalForButton }}
+          </strong>
+          <div
+            v-if="checkoutStore.discountAmount > 0"
+            class="order-saved"
+            data-testid="order-discount"
+          >
+            {{ $t('checkout.orderSummary.youSaved') }} {{ formattedDiscount }}
+          </div>
+        </div>
       </div>
 
-      <!-- Step 2: Billing Address -->
+      <!-- Step 2: Billing Address (hidden when there is nothing to pay) -->
       <BillingAddressBlock
+        v-if="hasPayableTotal"
         :key="isAuthenticated ? 'auth' : 'anon'"
         class="card"
         @valid="handleBillingAddressValid"
       />
 
-      <!-- Step 3: Payment Methods -->
+      <!-- Step 3: Payment Methods (hidden when there is nothing to pay) -->
       <PaymentMethodsBlock
+        v-if="!isPayZero"
         class="card"
         :amount="checkoutStore.orderTotal"
         :currency="checkoutStore.currency"
@@ -127,7 +159,7 @@
           :disabled="!canCheckout"
           @click="checkoutStore.submitCheckout"
         >
-          {{ checkoutStore.submitting ? $t('checkout.submitting') : (payButtonLabelOverride || $t('checkout.payButton', { amount: formattedTotalForButton })) }}
+          {{ checkoutStore.submitting ? $t('checkout.submitting') : (isPayZero ? $t('checkout.activateFree') : (payButtonLabelOverride || $t('checkout.payButton', { amount: formattedTotalForButton }))) }}
         </button>
       </div>
 
@@ -147,7 +179,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { formatMoney, payButtonLabelOverride } from 'vbwd-view-component';
+import { formatMoney, isZeroTotal, payButtonLabelOverride, CouponInput } from 'vbwd-view-component';
 import { useCheckoutStore } from '@/stores/checkout';
 import { isAuthenticated as checkAuth } from '@/api';
 import EmailBlock from '@/components/checkout/EmailBlock.vue';
@@ -170,6 +202,22 @@ const error = ref<string | null>(null);
 const formattedTotalForButton = computed(() =>
   formatMoney(Number(checkoutStore.orderTotal), { currency: checkoutStore.currency || 'USD' }),
 );
+
+const formattedDiscount = computed(() =>
+  formatMoney(Number(checkoutStore.discountAmount), { currency: checkoutStore.currency || 'USD' }),
+);
+
+// Gross (pre-discount) total drives coupon-input + billing visibility.
+const hasPayableTotal = computed(
+  () => Number(checkoutStore.orderTotal) + Number(checkoutStore.discountAmount) > 0,
+);
+// Pay Zero keys off the NET total — a checkout discounted to zero needs no
+// payment method either.
+const isPayZero = computed(() => isZeroTotal(checkoutStore.orderTotal));
+
+async function onApplyCoupon(code: string): Promise<void> {
+  await checkoutStore.applyCoupon(code);
+}
 
 // Auth state
 const isAuthenticated = ref(checkAuth());
@@ -206,10 +254,12 @@ const handleBillingAddressValid = (isValid: boolean) => {
   billingAddressValid.value = isValid;
 };
 
+// Pay Zero: when there's nothing to pay (net total 0) no payment method is
+// required; billing is still collected whenever the order has a gross price.
 const canCheckout = computed(() =>
   isAuthenticated.value &&
-  selectedPaymentMethod.value &&
-  billingAddressValid.value &&
+  (isPayZero.value || !!selectedPaymentMethod.value) &&
+  (!hasPayableTotal.value || billingAddressValid.value) &&
   termsAccepted.value &&
   !checkoutStore.submitting
 );
@@ -217,8 +267,8 @@ const canCheckout = computed(() =>
 const missingRequirements = computed(() => {
   const missing: string[] = [];
   if (!isAuthenticated.value) missing.push(t('checkout.requirements.signIn'));
-  if (!billingAddressValid.value) missing.push(t('checkout.requirements.billingAddress'));
-  if (!selectedPaymentMethod.value) missing.push(t('checkout.requirements.paymentMethod'));
+  if (hasPayableTotal.value && !billingAddressValid.value) missing.push(t('checkout.requirements.billingAddress'));
+  if (!isPayZero.value && !selectedPaymentMethod.value) missing.push(t('checkout.requirements.paymentMethod'));
   if (!termsAccepted.value) missing.push(t('checkout.requirements.acceptTerms'));
   return missing;
 });
@@ -287,6 +337,27 @@ onUnmounted(() => {
   max-width: 900px;
   margin: 0 auto;
   padding: 40px 20px;
+}
+
+/* Space the coupon block away from the order items and the final total. */
+.checkout-coupon {
+  margin: 16px 0;
+}
+
+/* Final total — mirrors the plan/shop summary `.total` look. */
+.order-total {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  text-align: right;
+  font-size: 1.1rem;
+}
+
+.order-saved {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--vbwd-success, #047857);
 }
 
 h1 {
