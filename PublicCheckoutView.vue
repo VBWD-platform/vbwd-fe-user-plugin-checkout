@@ -29,6 +29,21 @@
       </router-link>
     </div>
 
+    <!-- Expired / already-redeemed bot checkout-draft link -->
+    <div
+      v-else-if="draftExpired"
+      class="no-plan"
+      data-testid="checkout-draft-expired"
+    >
+      <p>{{ $t('checkout.draftExpired') }}</p>
+      <router-link
+        to="/landing1"
+        class="btn primary"
+      >
+        {{ $t('common.browsePlans') }}
+      </router-link>
+    </div>
+
     <!-- Nothing to check out (no matching checkout source for this route) -->
     <div
       v-else-if="!checkoutStore.hasActiveSource"
@@ -188,6 +203,7 @@ import { getCheckoutPaymentMethod } from '@/registries/checkoutPaymentMethods';
 import TermsCheckbox from '@/components/checkout/TermsCheckbox.vue';
 import BillingAddressBlock from '@/components/checkout/BillingAddressBlock.vue';
 import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
+import { hydrateCartFromDraft, DraftExpiredError } from './draftCheckout';
 
 const route = useRoute();
 const router = useRouter();
@@ -196,6 +212,8 @@ const checkoutStore = useCheckoutStore();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
+// Set when a `?draft=<token>` bot checkout-draft link is expired / redeemed.
+const draftExpired = ref(false);
 
 // Pre-format the order total so the Pay button never leaks IEEE-754 noise
 // (e.g. ``Pay $39.989999999999995``). Rounded half-up at the 3rd decimal.
@@ -230,6 +248,10 @@ const billingAddressValid = ref(false);
 
 // Plan slug from query params
 const planSlug = computed(() => route.query.tarif_plan_id as string || '');
+
+// One-time bot checkout-draft token (S53.1). When present, the cart is seeded
+// from the draft before the normal cart-backed checkout runs.
+const draftToken = computed(() => route.query.draft as string || '');
 
 // Handle authentication from EmailBlock
 const handleAuthenticated = (_userId: string) => {
@@ -313,6 +335,24 @@ watch(() => checkoutStore.checkoutResult, async (result) => {
 onMounted(async () => {
   loading.value = true;
   try {
+    // Bot checkout-draft hand-off (S53.1): seed the fe-core cart from the draft,
+    // then proceed as a normal cart-backed checkout. No new checkout logic — the
+    // cart is the single source of truth the subscription source already reads.
+    if (draftToken.value) {
+      try {
+        await hydrateCartFromDraft(draftToken.value);
+      } catch (draftError) {
+        if (draftError instanceof DraftExpiredError) {
+          draftExpired.value = true;
+          return;
+        }
+        throw draftError;
+      }
+      await checkoutStore.loadForContext({ cartType: 'subscription', isCart: true });
+      error.value = checkoutStore.error;
+      return;
+    }
+
     // Generic: the registry picks the plugin source matching this route
     // (e.g. ?source=shop → shop cart; ?tarif_plan_id=… → subscription plan).
     await checkoutStore.loadForContext({

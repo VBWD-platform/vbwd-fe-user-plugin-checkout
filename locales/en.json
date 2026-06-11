@@ -39,6 +39,7 @@
     "activateFree": "Activate for Free",
     "submitting": "Processing...",
     "noPlanSelected": "No plan selected. Please choose a plan first.",
+    "draftExpired": "This checkout link has expired or has already been used. Please start a new order.",
     "errors": {
       "failedToLoad": "Failed to load plan details"
     },

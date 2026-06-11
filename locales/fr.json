@@ -33,6 +33,7 @@
     "payButton": "Payer ${amount}",
     "submitting": "Traitement...",
     "noPlanSelected": "Aucun plan sélectionné. Veuillez d'abord choisir un plan.",
+    "draftExpired": "Ce lien de paiement a expiré ou a déjà été utilisé. Veuillez démarrer une nouvelle commande.",
     "errors": {
       "failedToLoad": "Erreur de chargement des détails du plan"
     },

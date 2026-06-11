@@ -33,6 +33,7 @@
     "payButton": "支付 ${amount}",
     "submitting": "处理中...",
     "noPlanSelected": "未选择计划。请先选择计划。",
+    "draftExpired": "此结账链接已过期或已被使用。请重新下单。",
     "errors": {
       "failedToLoad": "加载计划详情失败"
     },
