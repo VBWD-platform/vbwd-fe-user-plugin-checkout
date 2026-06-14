@@ -103,6 +103,15 @@
           @clear="checkoutStore.clearCoupon"
         />
 
+        <!-- Order-level tax breakdown (net / total taxes / brutto) across every
+             line item, just before the Total. Rendered only when the active
+             source supplies an aggregated breakdown with taxes. -->
+        <OrderTaxSummary
+          v-if="checkoutStore.taxBreakdown"
+          :price="checkoutStore.taxBreakdown"
+          class="checkout-tax-summary"
+        />
+
         <div
           class="order-total"
           data-testid="order-total"
@@ -111,7 +120,12 @@
             {{ checkoutStore.discountAmount > 0
               ? $t('checkout.orderSummary.finalPrice')
               : $t('checkout.orderSummary.total') }}
-            {{ formattedTotalForButton }}
+            <PriceDisplay
+              :net-amount="Number(checkoutStore.orderTotal)"
+              :gross-amount="Number(checkoutStore.orderTotal)"
+              :currency="checkoutStore.currency"
+              :account-type="authStore.user?.account_type"
+            />
           </strong>
           <div
             v-if="checkoutStore.discountAmount > 0"
@@ -194,8 +208,9 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { formatMoney, isZeroTotal, payButtonLabelOverride, CouponInput } from 'vbwd-view-component';
+import { formatMoney, isZeroTotal, payButtonLabelOverride, CouponInput, useAuthStore } from 'vbwd-view-component';
 import { useCheckoutStore } from '@/stores/checkout';
+import { useAppConfigStore } from '@/stores/appConfig';
 import { isAuthenticated as checkAuth } from '@/api';
 import EmailBlock from '@/components/checkout/EmailBlock.vue';
 import PaymentMethodsBlock from '@/components/checkout/PaymentMethodsBlock.vue';
@@ -204,11 +219,15 @@ import TermsCheckbox from '@/components/checkout/TermsCheckbox.vue';
 import BillingAddressBlock from '@/components/checkout/BillingAddressBlock.vue';
 import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
 import { hydrateCartFromDraft, DraftExpiredError } from './draftCheckout';
+import PriceDisplay from '@/components/PriceDisplay.vue';
+import OrderTaxSummary from '@/components/OrderTaxSummary.vue';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const checkoutStore = useCheckoutStore();
+const appConfig = useAppConfigStore();
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -218,11 +237,11 @@ const draftExpired = ref(false);
 // Pre-format the order total so the Pay button never leaks IEEE-754 noise
 // (e.g. ``Pay $39.989999999999995``). Rounded half-up at the 3rd decimal.
 const formattedTotalForButton = computed(() =>
-  formatMoney(Number(checkoutStore.orderTotal), { currency: checkoutStore.currency || 'USD' }),
+  formatMoney(Number(checkoutStore.orderTotal), { currency: checkoutStore.currency }),
 );
 
 const formattedDiscount = computed(() =>
-  formatMoney(Number(checkoutStore.discountAmount), { currency: checkoutStore.currency || 'USD' }),
+  formatMoney(Number(checkoutStore.discountAmount), { currency: checkoutStore.currency }),
 );
 
 // Gross (pre-discount) total drives coupon-input + billing visibility.
@@ -334,6 +353,8 @@ watch(() => checkoutStore.checkoutResult, async (result) => {
 
 onMounted(async () => {
   loading.value = true;
+  // Ensure the global operating currency is available before the summary renders.
+  await appConfig.load();
   try {
     // Bot checkout-draft hand-off (S53.1): seed the fe-core cart from the draft,
     // then proceed as a normal cart-backed checkout. No new checkout logic — the
@@ -382,6 +403,11 @@ onUnmounted(() => {
 /* Space the coupon block away from the order items and the final total. */
 .checkout-coupon {
   margin: 16px 0;
+}
+
+/* The order-level tax breakdown sits between the summary and the Total. */
+.checkout-tax-summary {
+  margin-top: 12px;
 }
 
 /* Final total — mirrors the plan/shop summary `.total` look. */

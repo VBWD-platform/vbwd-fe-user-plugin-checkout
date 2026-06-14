@@ -67,6 +67,17 @@
           </div>
         </div>
 
+        <!-- S85.4 totals-level tax disclosure, built ONLY from the persisted
+             invoice net / tax / gross fields (no fe-side tax math). Per-rate tax
+             lines need S85.2 line-item tax persistence; the tax line here is a
+             single aggregate from tax_amount. -->
+        <PriceBreakdown
+          v-if="totalAmount"
+          class="confirmation-breakdown"
+          data-testid="confirmation-breakdown"
+          :price="confirmationBreakdownPrice"
+        />
+
         <!-- Line Items Table -->
         <div
           v-if="lineItems.length > 0"
@@ -139,6 +150,8 @@ import { useRoute } from 'vue-router';
 import { api } from '@/api';
 import { checkoutConfirmationRegistry } from '@/registries/checkoutConfirmationRegistry';
 import { useCmsStore } from '../cms/src/stores/useCmsStore';
+import PriceBreakdown from '@/components/PriceBreakdown.vue';
+import type { PriceVO } from '@/utils/priceDisplay';
 
 // Use global i18n ($t) — useI18n() creates a local scope that misses plugin translations
 const instance = getCurrentInstance();
@@ -154,6 +167,22 @@ const invoiceNumber = computed(() => (invoiceData.value?.invoice_number as strin
 const paymentStatus = computed(() => (invoiceData.value?.status as string)?.toLowerCase() || 'pending');
 const totalAmount = computed(() => (invoiceData.value?.total_amount as string) || (invoiceData.value?.amount as string) || '');
 const currency = computed(() => (invoiceData.value?.currency as string) || 'EUR');
+
+// Totals-level Price VO from persisted invoice fields — no fe-side tax math; a
+// tampered tax_amount shows verbatim. ``brutto`` = total, ``netto`` = subtotal
+// (falls back to gross when no split), single aggregate tax line from tax_amount.
+const confirmationBreakdownPrice = computed<PriceVO>(() => {
+  const invoice = invoiceData.value || {};
+  const gross = Number(totalAmount.value || 0);
+  const net = invoice.subtotal !== undefined ? Number(invoice.subtotal) : gross;
+  const tax = invoice.tax_amount !== undefined ? Number(invoice.tax_amount) : 0;
+  return {
+    netto: net,
+    taxes: tax > 0 ? [{ code: 'TAX', rate: 0, amount: tax }] : [],
+    brutto: gross,
+    currency: currency.value,
+  };
+});
 const paymentMethod = computed(() => (invoiceData.value?.payment_method as string) || '');
 const paymentDate = computed(() => {
   const date = (invoiceData.value?.paid_at as string) || (invoiceData.value?.invoiced_at as string);

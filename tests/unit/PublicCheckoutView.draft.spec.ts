@@ -39,6 +39,7 @@ vi.mock('vbwd-view-component', () => ({
   isZeroTotal: (value: number) => Number(value) === 0,
   payButtonLabelOverride: null,
   CouponInput: { name: 'CouponInput', template: '<div />' },
+  useAuthStore: () => ({ user: null }),
 }));
 
 vi.mock('@/registries/checkoutPaymentMethods', () => ({ getCheckoutPaymentMethod: vi.fn() }));
