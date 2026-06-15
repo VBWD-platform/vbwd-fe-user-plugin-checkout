@@ -26,6 +26,22 @@ jobs:
 
       - name: Overlay plugin source
         run: cp -r plugin-src/. vbwd-fe-user/plugins/checkout/
+      # cross-imports peer plugin(s) that are gitignored in the host app; overlay from their repos.
+      - name: Checkout cms peer
+        uses: actions/checkout@v4
+        with:
+          repository: VBWD-platform/vbwd-fe-user-plugin-cms
+          path: peer-cms
+      - name: Checkout booking peer
+        uses: actions/checkout@v4
+        with:
+          repository: VBWD-platform/vbwd-fe-user-plugin-booking
+          path: peer-booking
+      - name: Overlay peers
+        run: |
+          mkdir -p vbwd-fe-user/plugins/cms vbwd-fe-user/plugins/booking
+          cp -r peer-cms/. vbwd-fe-user/plugins/cms/
+          cp -r peer-booking/. vbwd-fe-user/plugins/booking/
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
