@@ -46,9 +46,11 @@ export const checkoutPlugin: IPlugin = {
         Promise.all([
           import('./PublicCheckoutView.vue'),
           import('./CheckoutConfirmationView.vue'),
-        ]).then(([checkoutForm, checkoutConfirmation]) => {
+          import('./components/widgets/TokenBundleCollection.vue'),
+        ]).then(([checkoutForm, checkoutConfirmation, tokenBundleCollection]) => {
           registerCmsVueComponent('CheckoutForm', checkoutForm.default);
           registerCmsVueComponent('CheckoutConfirmation', checkoutConfirmation.default);
+          registerCmsVueComponent('TokenBundleCollection', tokenBundleCollection.default);
         });
       })
       .catch(() => {
