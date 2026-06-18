@@ -109,6 +109,7 @@
         <OrderTaxSummary
           v-if="checkoutStore.taxBreakdown"
           :price="checkoutStore.taxBreakdown"
+          convert-to-display
           class="checkout-tax-summary"
         />
 
@@ -125,8 +126,19 @@
               :gross-amount="Number(checkoutStore.orderTotal)"
               :currency="checkoutStore.currency"
               :account-type="authStore.user?.account_type"
+              convert-to-display
             />
           </strong>
+          <!-- Charge-surface honesty (D6): when displaying a non-billing
+               currency the figure is an approximation; the charge is in the
+               billing currency, called out explicitly. -->
+          <div
+            v-if="displayPrice.isConverting"
+            class="order-billed-note"
+            data-testid="order-billed-note"
+          >
+            {{ $t('currency.billedIn', { currency: checkoutStore.currency }) }}
+          </div>
           <div
             v-if="checkoutStore.discountAmount > 0"
             class="order-saved"
@@ -208,9 +220,10 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { formatMoney, isZeroTotal, payButtonLabelOverride, CouponInput, useAuthStore } from 'vbwd-view-component';
+import { isZeroTotal, payButtonLabelOverride, CouponInput, useAuthStore } from 'vbwd-view-component';
 import { useCheckoutStore } from '@/stores/checkout';
 import { useAppConfigStore } from '@/stores/appConfig';
+import { useDisplayPrice } from '@/composables/useDisplayPrice';
 import { isAuthenticated as checkAuth } from '@/api';
 import EmailBlock from '@/components/checkout/EmailBlock.vue';
 import PaymentMethodsBlock from '@/components/checkout/PaymentMethodsBlock.vue';
@@ -228,6 +241,7 @@ const { t } = useI18n();
 const checkoutStore = useCheckoutStore();
 const appConfig = useAppConfigStore();
 const authStore = useAuthStore();
+const displayPrice = useDisplayPrice();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -236,12 +250,15 @@ const draftExpired = ref(false);
 
 // Pre-format the order total so the Pay button never leaks IEEE-754 noise
 // (e.g. ``Pay $39.989999999999995``). Rounded half-up at the 3rd decimal.
+// The figure follows the view-only display-currency switch (S99.4); the actual
+// charge is always the billing currency (the submit payload never carries the
+// display currency).
 const formattedTotalForButton = computed(() =>
-  formatMoney(Number(checkoutStore.orderTotal), { currency: checkoutStore.currency }),
+  displayPrice.formatInDisplay(Number(checkoutStore.orderTotal), checkoutStore.currency),
 );
 
 const formattedDiscount = computed(() =>
-  formatMoney(Number(checkoutStore.discountAmount), { currency: checkoutStore.currency }),
+  displayPrice.formatInDisplay(Number(checkoutStore.discountAmount), checkoutStore.currency),
 );
 
 // Gross (pre-discount) total drives coupon-input + billing visibility.
@@ -424,6 +441,13 @@ onUnmounted(() => {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--vbwd-success, #047857);
+}
+
+/* Charge-surface honesty note: "billed in <currency>" (S99.4 D6). */
+.order-billed-note {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--vbwd-text-muted, #6b7280);
 }
 
 h1 {

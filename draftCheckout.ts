@@ -14,6 +14,7 @@
  */
 import { useCartStore } from 'vbwd-view-component';
 import { api } from '@/api';
+import { useAppConfigStore } from '@/stores/appConfig';
 
 /** A line item as returned by the public draft-resolution endpoint. */
 interface DraftLineItem {
@@ -66,7 +67,8 @@ function toCartItem(lineItem: DraftLineItem) {
       // `metadata.plan_id`; for add-ons/bundles the id alone is enough but
       // carrying it costs nothing and keeps the shape uniform.
       plan_id: lineItem.item_id,
-      currency: lineItem.currency ?? 'USD',
+      // Resolve: the line's own currency, else the billing default (S99).
+      currency: lineItem.currency ?? useAppConfigStore().defaultCurrency,
     },
   };
 }

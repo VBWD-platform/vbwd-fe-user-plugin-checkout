@@ -12,12 +12,14 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 
-const { apiGet, addItem, emit } = vi.hoisted(() => ({
+const { apiGet, addItem, emit, push } = vi.hoisted(() => ({
   apiGet: vi.fn(),
   addItem: vi.fn(),
   emit: vi.fn(),
+  push: vi.fn(),
 }));
 vi.mock('@/api', () => ({ api: { get: (...args: unknown[]) => apiGet(...args) } }));
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
 
 vi.mock('vbwd-view-component', async () => {
   const actual = await vi.importActual<typeof import('vbwd-view-component')>('vbwd-view-component');
@@ -140,6 +142,26 @@ describe('TokenBundleCollection widget', () => {
     const payload = addItem.mock.calls[0][0];
     expect(payload).toMatchObject({ type: 'TOKEN_BUNDLE', id: 'b-gamma', price: 5 });
     expect(emit).toHaveBeenCalledWith('NOTIFICATION_SHOW', expect.objectContaining({ type: 'success' }));
+  });
+
+  it('carries the bundle Price VO + currency into the cart (for tax disclosure)', async () => {
+    const wrapper = await mountWidget({});
+    await wrapper.get('[data-testid="add-to-cart-b-gamma"]').trigger('click');
+    const payload = addItem.mock.calls[0][0];
+    expect(payload.metadata).toMatchObject({
+      token_amount: 100,
+      currency: 'EUR',
+      price_obj: { netto: 5, brutto: 6, currency: 'EUR', taxes: [] },
+    });
+  });
+
+  it('forwards to the public checkout after adding the bundle', async () => {
+    const wrapper = await mountWidget({});
+    await wrapper.get('[data-testid="add-to-cart-b-gamma"]').trigger('click');
+    expect(push).toHaveBeenCalledWith({
+      name: 'checkout-public',
+      query: { source: 'subscription' },
+    });
   });
 
   it('keeps only the configured bundle ids when bundle_ids is set', async () => {

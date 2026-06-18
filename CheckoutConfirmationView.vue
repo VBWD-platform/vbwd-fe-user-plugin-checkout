@@ -147,9 +147,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, getCurrentInstance } from 'vue';
 import { useRoute } from 'vue-router';
+import { formatMoney } from 'vbwd-view-component';
 import { api } from '@/api';
 import { checkoutConfirmationRegistry } from '@/registries/checkoutConfirmationRegistry';
 import { useCmsStore } from '../cms/src/stores/useCmsStore';
+import { useAppConfigStore } from '@/stores/appConfig';
 import PriceBreakdown from '@/components/PriceBreakdown.vue';
 import type { PriceVO } from '@/utils/priceDisplay';
 
@@ -159,6 +161,7 @@ const t = (key: string) => instance?.proxy?.$t(key) ?? key;
 
 const route = useRoute();
 const cmsStore = useCmsStore();
+const appConfig = useAppConfigStore();
 const loading = ref(true);
 const invoiceData = ref<Record<string, unknown> | null>(null);
 
@@ -166,7 +169,9 @@ const invoiceId = computed(() => route.query.invoice_id as string || route.query
 const invoiceNumber = computed(() => (invoiceData.value?.invoice_number as string) || '');
 const paymentStatus = computed(() => (invoiceData.value?.status as string)?.toLowerCase() || 'pending');
 const totalAmount = computed(() => (invoiceData.value?.total_amount as string) || (invoiceData.value?.amount as string) || '');
-const currency = computed(() => (invoiceData.value?.currency as string) || 'EUR');
+// The invoice's own stored currency, else the billing default (S99) — never a
+// literal (the confirmation reflects a created invoice / legal document).
+const currency = computed(() => (invoiceData.value?.currency as string) || appConfig.defaultCurrency);
 
 // Totals-level Price VO from persisted invoice fields — no fe-side tax math; a
 // tampered tax_amount shows verbatim. ``brutto`` = total, ``netto`` = subtotal
@@ -217,7 +222,8 @@ const statusMessage = computed(() => {
 function formatPrice(price: string | number, curr: string): string {
   const num = typeof price === 'string' ? parseFloat(price) : price;
   if (isNaN(num)) return String(price);
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: curr || 'EUR' }).format(num);
+  // Resolve: the passed currency, else the billing default (S99).
+  return formatMoney(num, { currency: curr || appConfig.defaultCurrency });
 }
 
 /**

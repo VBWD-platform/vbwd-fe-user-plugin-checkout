@@ -135,6 +135,7 @@
  */
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import {
   useCartStore,
   useAuthStore,
@@ -171,6 +172,7 @@ interface TokenBundleCollectionConfig {
 const props = defineProps<{ config: TokenBundleCollectionConfig }>();
 
 const { t } = useI18n();
+const router = useRouter();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 
@@ -222,18 +224,33 @@ function formatTokenAmount(amount: number): string {
 function addToCart(bundle: TokenBundle): void {
   const numericPrice = netPriceOf(bundle);
   const name = `${formatTokenAmount(bundle.token_amount)} Tokens`;
+  // Preserve the computed Price VO (netto / per-rate taxes / brutto) and its
+  // currency so the bundle contributes its tax to the order-level breakdown on
+  // checkout — mirroring the subscription store's addBundle(). Without these the
+  // bundle has no tax data and the checkout shows no tax disclosure (and falls
+  // back to the wrong currency, since the bare bundle.currency is null).
+  const priceVO = bundle.price_info?.price;
   cartStore.addItem({
     type: 'TOKEN_BUNDLE',
     id: bundle.id,
     name,
     price: numericPrice,
-    metadata: { token_amount: bundle.token_amount },
+    metadata: {
+      token_amount: bundle.token_amount,
+      currency: priceVO?.currency ?? bundle.currency,
+      price_obj: priceVO,
+    },
   });
   eventBus.emit(AppEvents.NOTIFICATION_SHOW, {
     type: 'success',
     message: t('cart.addedToCart', { name }),
     duration: 3000,
   });
+  // Forward to the public checkout (the bundle is cart-backed; the subscription
+  // checkout source renders cart token bundles). Mirrors the tariff-plan widget,
+  // which routes to the public checkout on select. ``source=subscription`` lets
+  // the subscription source claim a token-only cart (no plan slug present).
+  router.push({ name: 'checkout-public', query: { source: 'subscription' } });
 }
 
 async function loadBundles(): Promise<void> {
