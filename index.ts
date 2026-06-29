@@ -10,7 +10,7 @@ import zh from './locales/zh.json';
 
 export const checkoutPlugin: IPlugin = {
   name: 'checkout',
-  version: '26.6',
+  version: '26.6.1',
   description: 'Public checkout page for anonymous and authenticated users',
   _active: false,
 
